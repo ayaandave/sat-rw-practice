@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SAT R&amp;W Practice</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #ffffff;
+    --text: #1a1a1a;
+    --muted: #666666;
+    --border: #d9d9d9;
+    --border-light: #eeeeee;
+    --accent: #2b5fb0;
+    --correct: #1e7d34;
+    --correct-bg: #e9f7ee;
+    --incorrect: #b3261e;
+    --incorrect-bg: #fdecea;
+    --panel: #f7f7f8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 18px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+  header h1 {
+    font-size: 17px;
+    margin: 0;
+    white-space: nowrap;
+  }
+  .filters {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 14px;
+  }
+  .filters label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .stats {
+    margin-left: auto;
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .stats b { color: var(--text); }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 24px 20px 100px;
+  }
+  .empty-state {
+    text-align: center;
+    color: var(--muted);
+    padding: 60px 20px;
+  }
+  .tags {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: var(--panel);
+    color: var(--muted);
+    border: 1px solid var(--border-light);
+  }
+  .tag.difficulty-Easy { color: #1e7d34; }
+  .tag.difficulty-Medium { color: #9a6700; }
+  .tag.difficulty-Hard { color: #b3261e; }
+  .qnum {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .question-text {
+    font-size: 16px;
+    white-space: pre-line;
+    margin-bottom: 18px;
+  }
+  .question-image {
+    max-width: 100%;
+    display: block;
+    margin: 0 auto 18px;
+  }
+  .choices {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    cursor: pointer;
+    font-size: 15px;
+    background: var(--bg);
+  }
+  .choice:hover { border-color: var(--accent); }
+  .choice.selected {
+    border-color: var(--accent);
+    background: #eef3fb;
+  }
+  .choice.correct {
+    border-color: var(--correct);
+    background: var(--correct-bg);
+  }
+  .choice.incorrect {
+    border-color: var(--incorrect);
+    background: var(--incorrect-bg);
+  }
+  .choice input { display: none; }
+  .choice .letter {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .choice.selected .letter { border-color: var(--accent); color: var(--accent); }
+  .choice.correct .letter { border-color: var(--correct); color: var(--correct); background: #fff; }
+  .choice.incorrect .letter { border-color: var(--incorrect); color: var(--incorrect); background: #fff; }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  button {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 16px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    color: var(--text);
+  }
+  button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  button.primary:hover:not(:disabled) { opacity: 0.9; color: #fff; }
+  .spacer { flex: 1; }
+
+  .result-banner {
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    display: none;
+  }
+  .result-banner.show { display: block; }
+  .result-banner.correct { background: var(--correct-bg); color: var(--correct); }
+  .result-banner.incorrect { background: var(--incorrect-bg); color: var(--incorrect); }
+
+  .rationale {
+    display: none;
+    border: 1px solid var(--border-light);
+    background: var(--panel);
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 20px;
+    white-space: pre-line;
+  }
+  .rationale.show { display: block; }
+  .rationale-toggle {
+    font-size: 13px;
+    color: var(--accent);
+    background: none;
+    border: none;
+    padding: 0;
+    margin-bottom: 20px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .palette-toggle {
+    font-size: 13px;
+    color: var(--muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+  }
+  .palette {
+    display: none;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    max-height: 160px;
+    overflow-y: auto;
+  }
+  .palette.show { display: flex; }
+  .palette .pnum {
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--muted);
+    background: var(--bg);
+  }
+  .palette .pnum.current { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .palette .pnum.correct { background: var(--correct-bg); border-color: var(--correct); color: var(--correct); }
+  .palette .pnum.incorrect { background: var(--incorrect-bg); border-color: var(--incorrect); color: var(--incorrect); }
+
+  footer.navbar {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    gap: 10px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>SAT R&amp;W Practice</h1>
+  <div class="filters">
+    <label><input type="checkbox" data-diff="Easy" checked> Easy</label>
+    <label><input type="checkbox" data-diff="Medium" checked> Medium</label>
+    <label><input type="checkbox" data-diff="Hard" checked> Hard</label>
+  </div>
+  <div class="stats">
+    <span id="progressStat">–</span>
+    <span id="scoreStat">–</span>
+    <button class="palette-toggle" id="paletteToggle">Jump to question</button>
+    <button class="palette-toggle" id="resetBtn">Reset progress</button>
+  </div>
+</header>
+
+<div class="palette" id="palette"></div>
+
+<main id="main">
+  <div class="empty-state" id="emptyState" style="display:none">No questions match the selected difficulty filters.</div>
+
+  <div id="questionView" style="display:none">
+    <div class="qnum" id="qnum"></div>
+    <div class="tags" id="tags"></div>
+    <img class="question-image" id="questionImage" style="display:none">
+    <div class="question-text" id="questionText"></div>
+
+    <div class="result-banner" id="resultBanner"></div>
+
+    <div class="choices" id="choices"></div>
+
+    <button class="rationale-toggle" id="rationaleToggle" style="display:none"></button>
+    <div class="rationale" id="rationale"></div>
+  </div>
+</main>
+
+<footer class="navbar">
+  <button id="prevBtn">← Previous</button>
+  <button class="primary" id="checkBtn" disabled>Check Answer</button>
+  <div class="spacer"></div>
+  <button class="primary" id="nextBtn">Next →</button>
+</footer>
+
+<script src="data.js"></script>
+<script>
+const STORAGE_KEY = 'sat_rw_practice_v1';
+
+let state = {
+  filters: { Easy: true, Medium: true, Hard: true },
+  answers: {},      // id -> { selected: 'A', correct: true/false }
+  currentId: null,
+};
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const saved = JSON.parse(raw);
+      state = Object.assign(state, saved);
+    }
+  } catch (e) {}
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function filteredQuestions() {
+  return QUESTIONS.filter(q => state.filters[q.difficulty]);
+}
+
+function currentIndex() {
+  const list = filteredQuestions();
+  const idx = list.findIndex(q => q.id === state.currentId);
+  return { list, idx };
+}
+
+function ensureCurrent() {
+  const list = filteredQuestions();
+  if (list.length === 0) { state.currentId = null; return; }
+  if (!list.find(q => q.id === state.currentId)) {
+    state.currentId = list[0].id;
+  }
+}
+
+function render() {
+  ensureCurrent();
+  const { list, idx } = currentIndex();
+  const emptyState = document.getElementById('emptyState');
+  const questionView = document.getElementById('questionView');
+
+  if (list.length === 0) {
+    emptyState.style.display = 'block';
+    questionView.style.display = 'none';
+    document.getElementById('progressStat').textContent = '0 of 0';
+    document.getElementById('scoreStat').textContent = '';
+    renderPalette(list);
+    return;
+  }
+  emptyState.style.display = 'none';
+  questionView.style.display = 'block';
+
+  const q = list[idx];
+  const answer = state.answers[q.id];
+
+  document.getElementById('qnum').textContent = `Question ${idx + 1} of ${list.length}`;
+  document.getElementById('tags').innerHTML = `
+    <span class="tag">${q.domain}</span>
+    <span class="tag">${q.skill}</span>
+    <span class="tag difficulty-${q.difficulty}">${q.difficulty}</span>
+  `;
+
+  const img = document.getElementById('questionImage');
+  if (q.image) { img.src = q.image; img.style.display = 'block'; }
+  else { img.style.display = 'none'; img.src = ''; }
+
+  document.getElementById('questionText').textContent = q.question;
+
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  ['A','B','C','D'].forEach(letter => {
+    const div = document.createElement('div');
+    div.className = 'choice';
+    div.dataset.letter = letter;
+    if (answer && answer.selected === letter) div.classList.add('selected');
+    if (answer) {
+      if (letter === q.correct) div.classList.add('correct');
+      else if (letter === answer.selected) div.classList.add('incorrect');
+    }
+    div.innerHTML = `<span class="letter">${letter}</span><span class="choice-text">${q.choices[letter]}</span>`;
+    div.addEventListener('click', () => selectChoice(q, letter));
+    choicesEl.appendChild(div);
+  });
+
+  const banner = document.getElementById('resultBanner');
+  const rationaleToggle = document.getElementById('rationaleToggle');
+  const rationale = document.getElementById('rationale');
+  const checkBtn = document.getElementById('checkBtn');
+
+  if (answer) {
+    banner.classList.add('show');
+    if (answer.correct) {
+      banner.textContent = 'Correct';
+      banner.className = 'result-banner show correct';
+      rationale.classList.remove('show');
+      rationaleToggle.style.display = 'inline-block';
+      rationaleToggle.textContent = 'Show explanation';
+    } else {
+      banner.textContent = `Incorrect — correct answer is ${q.correct}`;
+      banner.className = 'result-banner show incorrect';
+      rationale.classList.add('show');
+      rationaleToggle.style.display = 'none';
+    }
+    rationale.textContent = q.rationale;
+    checkBtn.disabled = true;
+  } else {
+    banner.classList.remove('show');
+    banner.textContent = '';
+    rationale.classList.remove('show');
+    rationaleToggle.style.display = 'none';
+    checkBtn.disabled = !getSelectedLetter(q.id);
+  }
+
+  document.getElementById('prevBtn').disabled = idx === 0;
+  document.getElementById('nextBtn').disabled = idx === list.length - 1;
+
+  const answeredCount = list.filter(q2 => state.answers[q2.id]).length;
+  const correctCount = list.filter(q2 => state.answers[q2.id] && state.answers[q2.id].correct).length;
+  document.getElementById('progressStat').innerHTML = `<b>${answeredCount}</b> / ${list.length} answered`;
+  document.getElementById('scoreStat').innerHTML = `<b>${correctCount}</b> correct`;
+
+  renderPalette(list);
+  saveState();
+}
+
+let pendingSelection = {};
+
+function getSelectedLetter(qid) {
+  return pendingSelection[qid];
+}
+
+function selectChoice(q, letter) {
+  if (state.answers[q.id]) return; // already checked
+  pendingSelection[q.id] = letter;
+  document.querySelectorAll('.choice').forEach(el => {
+    el.classList.toggle('selected', el.dataset.letter === letter);
+  });
+  document.getElementById('checkBtn').disabled = false;
+}
+
+function checkAnswer() {
+  const { list, idx } = currentIndex();
+  const q = list[idx];
+  const selected = getSelectedLetter(q.id);
+  if (!selected) return;
+  state.answers[q.id] = { selected, correct: selected === q.correct };
+  render();
+}
+
+function goPrev() {
+  const { list, idx } = currentIndex();
+  if (idx > 0) { state.currentId = list[idx - 1].id; render(); }
+}
+function goNext() {
+  const { list, idx } = currentIndex();
+  if (idx < list.length - 1) { state.currentId = list[idx + 1].id; render(); }
+}
+
+function renderPalette(list) {
+  const el = document.getElementById('palette');
+  el.innerHTML = '';
+  list.forEach((q, i) => {
+    const d = document.createElement('div');
+    d.className = 'pnum';
+    if (q.id === state.currentId) d.classList.add('current');
+    const ans = state.answers[q.id];
+    if (ans) d.classList.add(ans.correct ? 'correct' : 'incorrect');
+    d.textContent = i + 1;
+    d.title = `${q.domain} · ${q.skill} · ${q.difficulty}`;
+    d.addEventListener('click', () => { state.currentId = q.id; render(); });
+    el.appendChild(d);
+  });
+}
+
+document.querySelectorAll('.filters input').forEach(cb => {
+  cb.addEventListener('change', () => {
+    state.filters[cb.dataset.diff] = cb.checked;
+    render();
+  });
+});
+
+document.getElementById('checkBtn').addEventListener('click', checkAnswer);
+document.getElementById('prevBtn').addEventListener('click', goPrev);
+document.getElementById('nextBtn').addEventListener('click', goNext);
+document.getElementById('rationaleToggle').addEventListener('click', () => {
+  document.getElementById('rationale').classList.toggle('show');
+  const showing = document.getElementById('rationale').classList.contains('show');
+  document.getElementById('rationaleToggle').textContent = showing ? 'Hide explanation' : 'Show explanation';
+});
+document.getElementById('paletteToggle').addEventListener('click', () => {
+  document.getElementById('palette').classList.toggle('show');
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (confirm('Clear all progress (answers) and start over?')) {
+    state.answers = {};
+    saveState();
+    render();
+  }
+});
+
+loadState();
+document.querySelectorAll('.filters input').forEach(cb => {
+  cb.checked = state.filters[cb.dataset.diff];
+});
+if (!state.currentId && QUESTIONS.length) state.currentId = QUESTIONS[0].id;
+render();
+</script>
+</body>
+</html>
